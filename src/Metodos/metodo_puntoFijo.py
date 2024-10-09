@@ -1,77 +1,99 @@
 import sympy as sp
+import numpy as np
 from Metodos.Utils.Error_Relativo import Error_Relativo
-class metodo_puntoFijo:
 
+class metodo_puntoFijo:
     def metodo_puntoFijo(self):
         instance_ER = Error_Relativo()
-        xi_Inicial, yi_Inicial= 0,0
-        xi, yi  = 0, 0
+        
+        # Valores iniciales de xi, yi, zi
+        xi_Inicial, yi_Inicial, zi_Inicial = 0.1, 0.1, 0.1  # Evitar ceros directos
+        xi, yi, zi = xi_Inicial, yi_Inicial, zi_Inicial
+        
         # Definir las variables simbólicas
-        x, y = sp.symbols('x y')
+        x, y, z = sp.symbols('x y z')
         conta = 0
 
-        # Crear ecuaciones
-        equation_x = x**2 + x*y - 10  # ecuación de x
-        equation_y = y + 3*x*y**2 - 57  # ecuación de y
-        print(equation_x)
-        print(equation_y)
-        Flag ,valor,valor2= True, False, False
+        # Crear la matriz 3x3
+        matriz = sp.Matrix([
+            [0, 3*x, -sp.cos(y*z)],
+            [0, x**2, -625*y**2],
+            [sp.exp(-x*y), 20*z, (10*sp.pi - 3) / 3]
+        ])
 
+        Flag, valor_x, valor_y, valor_z = True, False, False, False
 
-        while(Flag):
-         print("Iteracion: {}".format(conta))
-         print(" ")
-         eval_equation_x = equation_x.subs({x: xi, y: yi}).evalf()  # Evaluar equation_x
-         eval_equation_y = equation_y.subs({x: xi, y: yi}).evalf()  # Evaluar equation_y
-         eval_equation_x = round(eval_equation_x,4)
-         eval_equation_y = round(eval_equation_y,4)
-         if eval_equation_x == 0 and eval_equation_y == 0:
-            print("LA FUNCION DA 0 EN X:{} Y:{}".format(xi,yi))
-            Flag = False 
-         else:
-        
-        # Despejar x y y
-          despeje_x = sp.solve(equation_x, x**2)
-          despeje_y = sp.solve(equation_y, y**2)
-          despeje_x = [sp.sqrt(sol) for sol in despeje_x]  # Raíz cuadrada de las soluciones de x
-          despeje_y = [sp.sqrt(sol) for sol in despeje_y]  # Raíz cuadrada de las soluciones de y
-          print("Despeje x: {} y: {}".format(despeje_x,despeje_y))
-         
- 
-        # Evaluar en xi, yi
-        # Usar la primera solución para x y y
-          xi= despeje_x[0].subs({x: xi, y: yi})
-          xi = round(xi,4)
-          yi = despeje_y[0].subs({x: xi, y: yi})
-          yi = round(yi,4)
-          print("Evaluación final: xi = {:.4f}, yi = {:.4f}".format(xi, yi))
+        while Flag:
+            print(f"Iteración: {conta}")
+            print(" ")
 
-          conta+=1
-          xError = instance_ER.Error_Relativo(xi,xi_Inicial)
-          yError = instance_ER.Error_Relativo(yi,yi_Inicial)
-        
-          print("ERROR RELATIVO: xi = {:.4f}, yi = {:.4f}".format(xError,yError ))
-          
-          if xError < 0.0005 and valor == False:
-             xiFinal = xi
-             valor = True
-          if yError < 0.0005 and valor2==False:
-             yiFinal = yi
-             valor2 = True
-          if valor == True and valor2 ==True:
-             print("Valores Finales: {}, {}".format(xiFinal,yiFinal))
-             Flag = False 
+            # Evaluar la matriz en los valores actuales de xi, yi, zi
+            eval_matriz = matriz.subs({x: xi, y: yi, z: zi}).evalf()
 
-          
-          xi_Inicial =  xi
-          yi_Inicial = yi
-         
-             
-        
+            # Redondear los resultados
+            eval_matriz = eval_matriz.applyfunc(lambda elem: round(elem, 4) if elem not in {sp.nan, sp.oo, -sp.oo} else float('nan'))
 
+            print(f"Matriz evaluada en X: {xi}, Y: {yi}, Z: {zi}:\n{eval_matriz}")
+            
+            # Verificar si la matriz evaluada contiene algún valor indefinido (nan)
+            if eval_matriz.norm() == 0 or any([elem.has(sp.nan) for elem in eval_matriz]):
+                print(f"La función no converge correctamente en X: {xi}, Y: {yi}, Z: {zi} (posible división por cero o valor indefinido).")
+                Flag = False
+            else:
+                try:
+                    # Despejar las variables x, y, z
+                    despeje_x = sp.solve(3*x - sp.cos(y*z), x)
+                    despeje_y = sp.solve(x**2 - 625*y**2, y)
+                    despeje_z = sp.solve(sp.exp(-x*y) + 20*z - (10*sp.pi - 3) / 3, z)
+
+                    print(f"Despeje X: {despeje_x}, Y: {despeje_y}, Z: {despeje_z}")
+
+                    # Verificar si hay soluciones para las variables
+                    if despeje_x and despeje_y and despeje_z:
+                        # Usar la primera solución (si existe) para actualizar xi, yi, zi
+                        xi = float(despeje_x[0].subs({x: xi, y: yi, z: zi}).evalf())
+                        yi = float(despeje_y[0].subs({x: xi, y: yi, z: zi}).evalf())
+                        zi = float(despeje_z[0].subs({x: xi, y: yi, z: zi}).evalf())
+
+                        xi, yi, zi = round(xi, 4), round(yi, 4), round(zi, 4)
+
+                    else:
+                        raise ValueError("No se encontraron soluciones válidas para las ecuaciones.")
+
+                except (ZeroDivisionError, ValueError, TypeError) as e:
+                    print(f"Error al intentar despejar o evaluar: {e}")
+                    Flag = False
+                    continue
+
+                print(f"Evaluación final: xi = {xi}, yi = {yi}, zi = {zi}")
+
+                conta += 1
+
+                # Calcular errores relativos
+                xError = instance_ER.Error_Relativo(xi, xi_Inicial)
+                yError = instance_ER.Error_Relativo(yi, yi_Inicial)
+                zError = instance_ER.Error_Relativo(zi, zi_Inicial)
+
+                print(f"Error relativo: xi = {xError:.4f}, yi = {yError:.4f}, zi = {zError:.4f}")
+
+                # Verificar si los errores relativos están dentro del umbral deseado
+                if xError < 0.005 and not valor_x:
+                    xiFinal = xi
+                    valor_x = True
+                if yError < 0.005 and not valor_y:
+                    yiFinal = yi
+                    valor_y = True
+                if zError < 0.005 and not valor_z:
+                    ziFinal = zi
+                    valor_z = True
+
+                if valor_x and valor_y and valor_z:
+                    print(f"Valores finales: X = {xiFinal}, Y = {yiFinal}, Z = {ziFinal}")
+                    Flag = False
+
+                # Actualizar los valores iniciales para la siguiente iteración
+                xi_Inicial, yi_Inicial, zi_Inicial = xi, yi, zi
 
         return None
-        
-
 
 

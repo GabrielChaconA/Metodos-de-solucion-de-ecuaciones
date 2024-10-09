@@ -8,16 +8,20 @@ class Menu:
         instance_metodoSeidel = metodo_seidel()
         instance_metodoNewton = newton()
         instance_puntoFijo = metodo_puntoFijo()
+        flag = True
         """ anwer = input("Elige un metodo:Jacobi(1) Seidel(2) Gauss(3) PuntoFijo(4)\n") """
-        anwer = "4"
-        if anwer == "1" :
-         instance_metodoJacobi.matriz_jacobi()
-        if anwer == "2":
-         instance_metodoSeidel.matriz_seidel()
-        if anwer == "3":
-         instance_metodoNewton.newton()
-        if anwer == "4":
-          instance_puntoFijo.metodo_puntoFijo()
+        while (flag):
+          anwer = input("Escoja su metodo (1)JACOBI (2) SEIDEL (3)NEWTON RAPHSON (4)PUNTO  FIJO\n")
+          if anwer == "1" :
+            instance_metodoJacobi.matriz_jacobi()
+          elif anwer == "2":
+           instance_metodoSeidel.matriz_seidel()
+          elif anwer == "3":
+           instance_metodoNewton.newton()
+          elif anwer == "4":
+            instance_puntoFijo.metodo_puntoFijo()
+          else:
+           flag = False
           
          
         return 
